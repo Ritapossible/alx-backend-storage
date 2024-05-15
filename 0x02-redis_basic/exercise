@@ -1,0 +1,1 @@
+        return fn(data) if fn is not None else data py
