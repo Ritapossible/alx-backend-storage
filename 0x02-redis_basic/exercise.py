@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''A module for using the Redis NoSQL data storage
+'''A module for using the Redis NoSQL data storage.
 '''
 import uuid
 import redis
@@ -43,6 +43,9 @@ def replay(fn: Callable) -> None:
     '''
     if fn is None or not hasattr(fn, '__self__'):
         return
+    redis_store = getattr(fn.__self__, '_redis', None)
+    if not isinstance(redis_store, redis.Redis):
+        return
     fxn_name = fn.__qualname__
     in_key = '{}:inputs'.format(fxn_name)
     out_key = '{}:outputs'.format(fxn_name)
@@ -55,7 +58,7 @@ def replay(fn: Callable) -> None:
     for fxn_input, fxn_output in zip(fxn_inputs, fxn_outputs):
         print('{}(*{}) -> {}'.format(
             fxn_name,
-            fxn_input.decode(utf-8),
+            fxn_input.decode("utf-8"),
             fxn_output,
         ))
 
@@ -86,6 +89,7 @@ class Cache:
         '''Retrieves a value from a Redis data storage.
         '''
         data = self._redis.get(key)
+        return fn(data) if fn is not None else data
 
     def get_str(self, key: str) -> str:
         '''Retrieves a string value from a Redis data storage.
