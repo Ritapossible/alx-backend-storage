@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Provides stats about Nginx logs restored in mongoDB"""
+""" Provides stats about Nginx logs restored in mongoDB."""
 import pymongo as pm
 db = pm.MongoClient()
 mydb = db["logs"]
