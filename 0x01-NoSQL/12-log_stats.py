@@ -1,22 +1,37 @@
 #!/usr/bin/env python3
-""" Provides stats about Nginx logs restored in mongoDB."""
-import pymongo as pm
-db = pm.MongoClient()
-mydb = db["logs"]
-mycol = mydb["nginx"]
+"""Provides some stats about Nginx logs."""
+from pymongo import MongoClient
 
 
 if __name__ == "__main__":
-    get_get = mycol.count_documents({"method": "GET"})
-    get_post = mycol.count_documents({"method": "POST"})
-    get_put = mycol.count_documents({"method": "PUT"})
-    get_patch = mycol.count_documents({"method": "PATCH"})
-    get_delete = mycol.count_documents({"method": "DELETE"})
-    get_total = mycol.count_documents({})
-    get_status = mycol.count_documents({"method": "GET", "path": "/status"})
-
-
-    print("{} logs".format(get_total))
-    print("Methods:\n\tmethod GET: {}\n\tmethod POST: {}\n\tmethod PUT: {}\n\tmethod PATCH: {}\n\tmethod DELETE: {}".format(
-                  get_get, get_post, get_put, get_patch, get_delete))
-    print("{} status check".format(get_status))
+    '''
+    provides some stats about Nginx logs
+    improved by adding the top 10 of the most present IPs
+    '''
+    client = MongoClient('mongodb://127.0.0.1:27017')
+    col = client.logs.nginx
+    print("{} logs".format(col.estimated_document_count()))
+    print("Methods:")
+    for method in ["GET", "POST", "PUT", "PATCH", "DELETE"]:
+        count = col.count_documents({'method': method})
+        print("\tmethod {}: {}".format(method, count))
+    status_get = col.count_documents({'method': 'GET', 'path': "/status"})
+    print("{} status check".format(status_get))
+    print("IPs:")
+    topIps = col.aggregate([
+        {"$group":
+            {
+                "_id": "$ip",
+                "count": {"$sum": 1}
+            }
+        },
+        {"$sort": {"count": -1}},
+        {"$limit": 10},
+        {"$project": {
+            "_id": 0,
+            "ip": "$_id",
+            "count": 1
+        }}
+    ])
+    for ip in topIps:
+        print("\t{}: {}".format(ip.get('ip'), ip.get('count')))
